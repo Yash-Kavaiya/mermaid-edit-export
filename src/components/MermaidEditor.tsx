@@ -28,7 +28,7 @@ const MermaidEditor = () => {
   useEffect(() => {
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'dark',
+      theme: 'base', // Use 'base' to apply custom theme variables
       securityLevel: 'loose',
       themeVariables: {
         background: '#1c2128',
