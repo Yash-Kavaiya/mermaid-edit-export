@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 import { saveAsPng } from 'save-svg-as-png';
@@ -28,14 +27,10 @@ const MermaidEditor = () => {
   useEffect(() => {
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'base', // Use 'base' to apply custom theme variables
+      theme: 'default', // Using light theme
       securityLevel: 'loose',
       themeVariables: {
-        background: '#1c2128',
-        primaryColor: '#2d333b',
-        primaryTextColor: '#cdd9e5',
-        lineColor: '#444c56',
-        textColor: '#cdd9e5',
+        background: 'transparent',
       },
     });
   }, []);
@@ -68,7 +63,7 @@ const MermaidEditor = () => {
   const handleExport = () => {
     if (previewRef.current?.querySelector('svg')) {
       saveAsPng(previewRef.current.querySelector('svg')!, 'diagram.png', {
-        backgroundColor: '#1c2128',
+        backgroundColor: 'transparent',
         scale: 2,
       });
     }
@@ -99,7 +94,7 @@ const MermaidEditor = () => {
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={60}>
-          <div className="flex h-full items-center justify-center p-4 bg-muted/20 overflow-auto">
+          <div className="flex h-full items-center justify-center p-4 bg-white text-black overflow-auto">
             {error && (
               <Alert variant="destructive" className="m-4">
                 <AlertCircle className="h-4 w-4" />
