@@ -87,10 +87,23 @@ const MermaidEditor = () => {
   const [isGenerating, setIsGenerating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [iconMappings, setIconMappings] = useState([
-    { keyword: 'drive', url: 'https://cdn.simpleicons.org/googledrive/4285F4' },
-    { keyword: 'cloud', url: 'https://cdn.simpleicons.org/googlecloud/4285F4' },
     { keyword: 'user', url: 'https://cdn.simpleicons.org/probot/black' },
     { keyword: 'database', url: 'https://cdn.simpleicons.org/serverless/black' },
+    { keyword: 'bigquery', url: 'https://cdn.simpleicons.org/googlebigquery/4285F4' },
+    { keyword: 'cloud', url: 'https://cdn.simpleicons.org/googlecloud/4285F4' },
+    { keyword: 'compute', url: 'https://cdn.simpleicons.org/googlecloud/4285F4' },
+    { keyword: 'cloud functions', url: 'https://cdn.simpleicons.org/googlecloudfunctions/4285F4' },
+    { keyword: 'cloud run', url: 'https://cdn.simpleicons.org/googlecloudrun/4285F4' },
+    { keyword: 'storage', url: 'https://cdn.simpleicons.org/googlecloudstorage/4285F4' },
+    { keyword: 'colab', url: 'https://cdn.simpleicons.org/googlecolab/4285F4' },
+    { keyword: 'dataflow', url: 'https://cdn.simpleicons.org/googledataflow/4285F4' },
+    { keyword: 'dataproc', url: 'https://cdn.simpleicons.org/googledataproc/4285F4' },
+    { keyword: 'datastudio', url: 'https://cdn.simpleicons.org/googledatastudio/4285F4' },
+    { keyword: 'drive', url: 'https://cdn.simpleicons.org/googledrive/4285F4' },
+    { keyword: 'kubernetes', url: 'https://cdn.simpleicons.org/googlekubernetesengine/4285F4' },
+    { keyword: 'maps', url: 'https://cdn.simpleicons.org/googlemaps/4285F4' },
+    { keyword: 'pub/sub', url: 'https://cdn.simpleicons.org/googlepubsub/4285F4' },
+    { keyword: 'translate', url: 'https://cdn.simpleicons.org/googletranslate/4285F4' },
   ]);
 
   const handleMappingChange = (index: number, field: 'keyword' | 'url', value: string) => {
