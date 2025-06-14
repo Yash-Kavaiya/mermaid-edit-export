@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 import { saveAsPng, svgAsPngUri } from 'save-svg-as-png';
@@ -32,7 +33,7 @@ const MermaidEditor = () => {
       theme: 'base',
       securityLevel: 'loose',
       flowchart: {
-        curve: 'basis',
+        curve: 'cardinal',
       },
       themeVariables: {
         background: 'transparent',
@@ -41,6 +42,7 @@ const MermaidEditor = () => {
         primaryBorderColor: '#0ea5e9',
         lineColor: '#0ea5e9',
         textColor: '#0c4a6e',
+        arrowheadColor: '#0ea5e9',
       },
     });
   }, []);
