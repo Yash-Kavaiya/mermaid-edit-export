@@ -1,7 +1,5 @@
-
 import { useState, useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
-import { saveAsPng, svgAsPngUri } from 'save-svg-as-png';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
@@ -9,7 +7,6 @@ import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/componen
 import { Download, AlertCircle, RefreshCw, Copy } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
-
 
 const defaultCode = `graph TD
     A(Start) --> B{Is it?};
@@ -19,6 +16,48 @@ const defaultCode = `graph TD
     E --> B;
 `;
 
+const svgStringToPngBlob = (svgString: string, scale = 2): Promise<Blob> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+    const url = URL.createObjectURL(svgBlob);
+
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.naturalWidth * scale;
+      canvas.height = img.naturalHeight * scale;
+      const ctx = canvas.getContext('2d');
+
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        return reject(new Error('Failed to get canvas context.'));
+      }
+
+      ctx.fillStyle = 'transparent';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.scale(scale, scale);
+      ctx.drawImage(img, 0, 0);
+
+      canvas.toBlob((blob) => {
+        URL.revokeObjectURL(url);
+        if (blob) {
+          resolve(blob);
+        } else {
+          reject(new Error('Canvas to Blob conversion failed'));
+        }
+      }, 'image/png');
+    };
+
+    img.onerror = (error) => {
+      URL.revokeObjectURL(url);
+      console.error("Image loading error:", error);
+      reject(new Error('Failed to load SVG image for conversion.'));
+    };
+
+    img.src = url;
+  });
+};
+
 const MermaidEditor = () => {
   const [code, setCode] = useState<string>(defaultCode);
   const [error, setError] = useState<string | null>(null);
@@ -26,6 +65,7 @@ const MermaidEditor = () => {
   const previewRef = useRef<HTMLDivElement>(null);
   const [isRendering, setIsRendering] = useState(false);
   const { toast } = useToast();
+  const [svgString, setSvgString] = useState('');
 
   useEffect(() => {
     mermaid.initialize({
@@ -51,11 +91,13 @@ const MermaidEditor = () => {
     if (!previewRef.current) return;
     setIsRendering(true);
     setError(null);
+    setSvgString('');
     try {
       // Use a timestamp to ensure a unique ID for each render
       const id = `mermaid-diagram-${Date.now()}`;
       const { svg } = await mermaid.render(id, debouncedCode);
       previewRef.current.innerHTML = svg;
+      setSvgString(svg);
     } catch (e) {
       if (e instanceof Error) {
         setError(e.message);
@@ -72,18 +114,39 @@ const MermaidEditor = () => {
     }
   }, [debouncedCode]);
 
-  const handleExport = () => {
-    if (previewRef.current?.querySelector('svg')) {
-      saveAsPng(previewRef.current.querySelector('svg')!, 'diagram.png', {
-        backgroundColor: 'transparent',
-        scale: 2,
+  const handleExport = async () => {
+    if (!svgString) {
+      toast({
+        variant: "destructive",
+        title: "No diagram to export",
+        description: "Please render a diagram first.",
       });
+      return;
+    }
+
+    try {
+        const blob = await svgStringToPngBlob(svgString);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'diagram.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+    } catch (err) {
+        console.error('Failed to export image: ', err);
+        const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+        toast({
+            variant: "destructive",
+            title: "Export Failed",
+            description: `Could not export image. ${errorMessage}`,
+        });
     }
   };
 
   const handleCopyImage = async () => {
-    const svgElement = previewRef.current?.querySelector('svg');
-    if (!svgElement) {
+    if (!svgString) {
       toast({
         variant: "destructive",
         title: "No diagram to copy",
@@ -93,11 +156,7 @@ const MermaidEditor = () => {
     }
 
     try {
-      const dataUri = await svgAsPngUri(svgElement, {
-        backgroundColor: 'transparent',
-        scale: 2,
-      });
-      const blob = await (await fetch(dataUri)).blob();
+      const blob = await svgStringToPngBlob(svgString);
       await navigator.clipboard.write([
         new ClipboardItem({
           [blob.type]: blob,
