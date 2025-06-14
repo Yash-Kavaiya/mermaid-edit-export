@@ -4,7 +4,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { Download, AlertCircle, RefreshCw, Copy, Sparkles } from 'lucide-react';
+import { Download, AlertCircle, RefreshCw, Copy, Sparkles, Trash2 } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -85,6 +85,31 @@ const MermaidEditor = () => {
   const [apiKey, setApiKey] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [iconMappings, setIconMappings] = useState([
+    { keyword: 'drive', url: 'https://cdn.simpleicons.org/googledrive/4285F4' },
+    { keyword: 'cloud', url: 'https://cdn.simpleicons.org/googlecloud/4285F4' },
+    { keyword: 'user', url: 'https://cdn.simpleicons.org/probot/black' },
+    { keyword: 'database', url: 'https://cdn.simpleicons.org/serverless/black' },
+  ]);
+
+  const handleMappingChange = (index: number, field: 'keyword' | 'url', value: string) => {
+    const newMappings = iconMappings.map((mapping, i) => {
+        if (i === index) {
+            return { ...mapping, [field]: value };
+        }
+        return mapping;
+    });
+    setIconMappings(newMappings);
+  };
+
+  const addMapping = () => {
+      setIconMappings([...iconMappings, { keyword: '', url: '' }]);
+  };
+
+  const removeMapping = (index: number) => {
+      const newMappings = iconMappings.filter((_, i) => i !== index);
+      setIconMappings(newMappings);
+  };
 
   useEffect(() => {
     mermaid.initialize({
@@ -154,11 +179,22 @@ const MermaidEditor = () => {
       const genAI = new GoogleGenerativeAI(apiKey);
       const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
 
+      const validMappings = iconMappings.filter(m => m.keyword && m.url);
+      const mappingInstructions = validMappings.length > 0 ?
+ `
+You can use icons in the diagram nodes. Here is a list of keywords (case-insensitive) and their corresponding icon URLs. If you find a keyword from the list in the text, use the associated icon in the node.
+- IMPORTANT: When using an icon, the node text MUST be HTML.
+- Format the node like this: nodeId["<img src='URL' width='32' height='32' /><br>Node Text"]
+- Make sure to escape any special characters in the node text.
+
+Icon Mappings:
+${validMappings.map(m => `- ${m.keyword}: ${m.url}`).join('\n')}` : '';
+
       const prompt = `Based on the following text, generate a Mermaid.js graph.
 - The graph should be visually appealing and follow a 'google theme' aesthetic. This means using clean lines, a simple color palette, and clear typography.
 - Use rectangular nodes. For example, use 'A[Text]' for a rectangle.
 - Use straight arrows.
-- Ensure proper alignment and a clear, easy-to-read layout.
+- Ensure proper alignment and a clear, easy-to-read layout.${mappingInstructions}
 - Output ONLY the Mermaid.js code block, starting with 'graph TD' or similar, without any explanations, formatting, or markdown backticks.
 
 Text: "${rawText}"`;
@@ -293,6 +329,29 @@ Text: "${rawText}"`;
                     className="h-40 font-sans"
                   />
                 </div>
+              </div>
+              <div className="grid gap-4 border-t pt-4">
+                <Label>Icon Mappings (Optional)</Label>
+                <div className="space-y-2 max-h-48 overflow-y-auto pr-2">
+                    {iconMappings.map((mapping, index) => (
+                        <div key={index} className="flex items-center gap-2">
+                            <Input
+                                placeholder="Keyword (e.g., User)"
+                                value={mapping.keyword}
+                                onChange={(e) => handleMappingChange(index, 'keyword', e.target.value)}
+                            />
+                            <Input
+                                placeholder="Icon URL"
+                                value={mapping.url}
+                                onChange={(e) => handleMappingChange(index, 'url', e.target.value)}
+                            />
+                            <Button variant="ghost" size="icon" onClick={() => removeMapping(index)}>
+                                <Trash2 className="h-4 w-4" />
+                            </Button>
+                        </div>
+                    ))}
+                </div>
+                <Button variant="outline" size="sm" onClick={addMapping} className="mt-2 w-full">Add Mapping</Button>
               </div>
               <DialogFooter>
                 <Button onClick={handleGenerate} disabled={isGenerating}>
