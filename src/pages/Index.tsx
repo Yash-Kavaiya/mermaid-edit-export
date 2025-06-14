@@ -1,6 +1,7 @@
 
 import Header from '@/components/Header';
 import MermaidEditor from '@/components/MermaidEditor';
+import { Toaster } from "@/components/ui/toaster";
 
 const Index = () => {
   return (
@@ -9,6 +10,7 @@ const Index = () => {
       <main>
         <MermaidEditor />
       </main>
+      <Toaster />
     </div>
   );
 };

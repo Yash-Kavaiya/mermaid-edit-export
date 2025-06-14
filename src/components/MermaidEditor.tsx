@@ -1,19 +1,20 @@
 import { useState, useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
-import { saveAsPng } from 'save-svg-as-png';
+import { saveAsPng, svgAsPngUri } from 'save-svg-as-png';
 import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { Download, AlertCircle, RefreshCw } from 'lucide-react';
+import { Download, AlertCircle, RefreshCw, Copy } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { useToast } from '@/hooks/use-toast';
 
 
 const defaultCode = `graph TD
-    A[Start] --> B{Is it?};
-    B -- Yes --> C[OK];
-    C --> D[End];
-    B -- No --> E[Find out];
+    A(Start) --> B{Is it?};
+    B -- Yes --> C(OK);
+    C --> D(End);
+    B -- No --> E(Find out);
     E --> B;
 `;
 
@@ -23,14 +24,23 @@ const MermaidEditor = () => {
   const debouncedCode = useDebounce(code, 500);
   const previewRef = useRef<HTMLDivElement>(null);
   const [isRendering, setIsRendering] = useState(false);
+  const { toast } = useToast();
 
   useEffect(() => {
     mermaid.initialize({
       startOnLoad: false,
-      theme: 'default', // Using light theme
+      theme: 'base',
       securityLevel: 'loose',
+      flowchart: {
+        curve: 'basis',
+      },
       themeVariables: {
         background: 'transparent',
+        primaryColor: '#e0f2fe',
+        primaryTextColor: '#0c4a6e',
+        primaryBorderColor: '#0ea5e9',
+        lineColor: '#0ea5e9',
+        textColor: '#0c4a6e',
       },
     });
   }, []);
@@ -69,12 +79,53 @@ const MermaidEditor = () => {
     }
   };
 
+  const handleCopyImage = async () => {
+    const svgElement = previewRef.current?.querySelector('svg');
+    if (!svgElement) {
+      toast({
+        variant: "destructive",
+        title: "No diagram to copy",
+        description: "Please render a diagram first.",
+      });
+      return;
+    }
+
+    try {
+      const dataUri = await svgAsPngUri(svgElement, {
+        backgroundColor: 'transparent',
+        scale: 2,
+      });
+      const blob = await (await fetch(dataUri)).blob();
+      await navigator.clipboard.write([
+        new ClipboardItem({
+          [blob.type]: blob,
+        }),
+      ]);
+      toast({
+        title: "Image Copied",
+        description: "The diagram has been copied to your clipboard.",
+      });
+    } catch (err) {
+      console.error('Failed to copy image: ', err);
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      toast({
+        variant: "destructive",
+        title: "Copy Failed",
+        description: `Could not copy image to clipboard. ${errorMessage}`,
+      });
+    }
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-80px)]">
       <div className="p-4 border-b border-border flex items-center justify-end gap-2">
         <Button onClick={renderDiagram} disabled={isRendering}>
             <RefreshCw className={`mr-2 h-4 w-4 ${isRendering ? 'animate-spin' : ''}`} />
             Render
+        </Button>
+        <Button onClick={handleCopyImage} variant="outline">
+          <Copy className="mr-2 h-4 w-4" />
+          Copy Image
         </Button>
         <Button onClick={handleExport} variant="outline">
           <Download className="mr-2 h-4 w-4" />
