@@ -1,3 +1,4 @@
+
 import { useState, useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -22,10 +23,10 @@ import { Label } from "@/components/ui/label";
 const defaultRawText = `A user starts a process. They are asked a question. If they say yes, it's OK and the process ends. If they say no, they need to find out more and go back to the question.`;
 
 const initialDiagram = `graph TD
-    A[Start] --> B{Is it?};
-    B -- Yes --> C[OK];
-    C --> D[End];
-    B -- No --> E[Find out];
+    A(Start) --> B{Is it?};
+    B -- Yes --> C(OK);
+    C --> D(End);
+    B -- No --> E(Find out);
     E --> B;
 `;
 
@@ -118,12 +119,12 @@ const MermaidEditor = () => {
       securityLevel: 'loose',
       themeVariables: {
         background: 'transparent',
-        primaryColor: '#e0f2fe',
-        primaryTextColor: '#0c4a6e',
-        primaryBorderColor: '#0ea5e9',
-        lineColor: '#0ea5e9',
-        textColor: '#0c4a6e',
-        arrowheadColor: '#0ea5e9',
+        primaryColor: '#E8F0FE',
+        primaryTextColor: '#202124',
+        primaryBorderColor: '#4285F4',
+        lineColor: '#5F6368',
+        textColor: '#202124',
+        arrowheadColor: '#5F6368',
       },
     });
   }, []);
@@ -192,7 +193,7 @@ ${validMappings.map(m => `- ${m.keyword}: ${m.url}`).join('\n')}` : '';
 
       const prompt = `Based on the following text, generate a Mermaid.js graph.
 - The graph should be visually appealing and follow a 'google theme' aesthetic. This means using clean lines, a simple color palette, and clear typography.
-- Use rectangular nodes. For example, use 'A[Text]' for a rectangle.
+- Use rounded-edge nodes. For example, use 'A(Text)' for a rounded rectangle.
 - Use straight arrows.
 - Ensure proper alignment and a clear, easy-to-read layout.${mappingInstructions}
 - Output ONLY the Mermaid.js code block, starting with 'graph TD' or similar, without any explanations, formatting, or markdown backticks.
