@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from 'react';
 import mermaid from 'mermaid';
 import { useDebounce } from '@/hooks/useDebounce';
@@ -130,6 +129,9 @@ const MermaidEditor = () => {
       startOnLoad: false,
       theme: 'base',
       securityLevel: 'loose',
+      flowchart: {
+        curve: 'basis',
+      },
       themeVariables: {
         background: 'transparent',
         primaryColor: '#E8F0FE',
@@ -207,7 +209,7 @@ ${validMappings.map(m => `- ${m.keyword}: ${m.url}`).join('\n')}` : '';
       const prompt = `Based on the following text, generate a Mermaid.js graph.
 - The graph should be visually appealing and follow a 'google theme' aesthetic. This means using clean lines, a simple color palette, and clear typography.
 - Use rounded-edge nodes. For example, use 'A(Text)' for a rounded rectangle.
-- Use straight arrows.
+- Use curved arrows between nodes.
 - Ensure proper alignment and a clear, easy-to-read layout.${mappingInstructions}
 - Output ONLY the Mermaid.js code block, starting with 'graph TD' or similar, without any explanations, formatting, or markdown backticks.
 
