@@ -4,11 +4,24 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { Download, AlertCircle, RefreshCw, Copy } from 'lucide-react';
+import { Download, AlertCircle, RefreshCw, Copy, Sparkles } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 
-const defaultCode = `graph TD
+const defaultRawText = `A user starts a process. They are asked a question. If they say yes, it's OK and the process ends. If they say no, they need to find out more and go back to the question.`;
+
+const initialDiagram = `graph TD
     A(Start) --> B{Is it?};
     B -- Yes --> C(OK);
     C --> D(End);
@@ -19,6 +32,7 @@ const defaultCode = `graph TD
 const svgStringToPngBlob = (svgString: string, scale = 2): Promise<Blob> => {
   return new Promise((resolve, reject) => {
     const img = new Image();
+    img.crossOrigin = 'anonymous';
     const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
     const url = URL.createObjectURL(svgBlob);
 
@@ -59,13 +73,18 @@ const svgStringToPngBlob = (svgString: string, scale = 2): Promise<Blob> => {
 };
 
 const MermaidEditor = () => {
-  const [code, setCode] = useState<string>(defaultCode);
+  const [code, setCode] = useState<string>(initialDiagram);
   const [error, setError] = useState<string | null>(null);
   const debouncedCode = useDebounce(code, 500);
   const previewRef = useRef<HTMLDivElement>(null);
   const [isRendering, setIsRendering] = useState(false);
   const { toast } = useToast();
   const [svgString, setSvgString] = useState('');
+  
+  const [rawText, setRawText] = useState<string>(defaultRawText);
+  const [apiKey, setApiKey] = useState<string>('');
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   useEffect(() => {
     mermaid.initialize({
@@ -113,6 +132,62 @@ const MermaidEditor = () => {
       renderDiagram();
     }
   }, [debouncedCode]);
+  
+  const handleGenerate = async () => {
+    if (!apiKey) {
+      toast({
+        variant: "destructive",
+        title: "API Key required",
+        description: "Please enter your Gemini API key.",
+      });
+      return;
+    }
+    if (!rawText) {
+      toast({
+        variant: "destructive",
+        title: "Input text required",
+        description: "Please enter some text to generate a diagram from.",
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const { GoogleGenerativeAI } = await import('@google/generative-ai');
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
+      const prompt = `Based on the following text, generate a Mermaid.js graph.
+- The graph should be visually appealing and follow a 'google theme' aesthetic. This means using clean lines, a simple color palette, and clear typography.
+- Use rounded edges for nodes. For example, use 'A(Text)' for a rectangle with rounded corners.
+- Use sloped (curved) arrows. The Mermaid configuration already uses 'curve: 'cardinal''.
+- Ensure proper alignment and a clear, easy-to-read layout.
+- Output ONLY the Mermaid.js code block, starting with 'graph TD' or similar, without any explanations, formatting, or markdown backticks.
+
+Text: "${rawText}"`;
+
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      const text = response.text();
+      
+      setCode(text.trim());
+      setDialogOpen(false);
+      toast({
+        title: "Diagram Generated",
+        description: "The Mermaid code has been generated and is ready to render.",
+      });
+    } catch (e) {
+      console.error('Gemini API error:', e);
+      const errorMessage = e instanceof Error ? e.message : 'An unknown error occurred.';
+      toast({
+        variant: "destructive",
+        title: "Generation Failed",
+        description: `Could not generate diagram. Check your API key and try again. Error: ${errorMessage}`,
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
 
   const handleExport = async () => {
     if (!svgString) {
@@ -179,19 +254,72 @@ const MermaidEditor = () => {
 
   return (
     <div className="flex flex-col h-[calc(100vh-80px)]">
-      <div className="p-4 border-b border-border flex items-center justify-end gap-2">
-        <Button onClick={renderDiagram} disabled={isRendering}>
-            <RefreshCw className={`mr-2 h-4 w-4 ${isRendering ? 'animate-spin' : ''}`} />
-            Render
-        </Button>
-        <Button onClick={handleCopyImage} variant="outline">
-          <Copy className="mr-2 h-4 w-4" />
-          Copy Image
-        </Button>
-        <Button onClick={handleExport} variant="outline">
-          <Download className="mr-2 h-4 w-4" />
-          Export as PNG
-        </Button>
+      <div className="p-4 border-b border-border flex items-center justify-between gap-2">
+        <div>
+          <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Sparkles className="mr-2 h-4 w-4" />
+                Generate with AI
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-[525px]">
+              <DialogHeader>
+                <DialogTitle>Generate Mermaid Diagram with AI</DialogTitle>
+                <DialogDescription>
+                  Enter your text and Gemini API key to generate a diagram. Your API key is not stored.
+                </DialogDescription>
+              </DialogHeader>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="apiKey" className="text-right">
+                    API Key
+                  </Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    value={apiKey}
+                    onChange={(e) => setApiKey(e.target.value)}
+                    className="col-span-3"
+                    placeholder="Your Google Gemini API Key"
+                  />
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="rawText">
+                    Your Text
+                  </Label>
+                  <Textarea
+                    id="rawText"
+                    value={rawText}
+                    onChange={(e) => setRawText(e.target.value)}
+                    placeholder="Type your text to generate a diagram from."
+                    className="h-40 font-sans"
+                  />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button onClick={handleGenerate} disabled={isGenerating}>
+                  {isGenerating && <RefreshCw className="mr-2 h-4 w-4 animate-spin" />}
+                  {isGenerating ? 'Generating...' : 'Generate'}
+                </Button>
+              </DialogFooter>
+            </DialogContent>
+          </Dialog>
+        </div>
+        <div className="flex items-center justify-end gap-2">
+            <Button onClick={renderDiagram} disabled={isRendering} variant="outline">
+                <RefreshCw className={`mr-2 h-4 w-4 ${isRendering ? 'animate-spin' : ''}`} />
+                Render
+            </Button>
+            <Button onClick={handleCopyImage} variant="outline">
+              <Copy className="mr-2 h-4 w-4" />
+              Copy Image
+            </Button>
+            <Button onClick={handleExport} variant="outline">
+              <Download className="mr-2 h-4 w-4" />
+              Export as PNG
+            </Button>
+        </div>
       </div>
       <ResizablePanelGroup direction="horizontal" className="flex-grow rounded-lg border-none">
         <ResizablePanel defaultSize={40}>
@@ -200,7 +328,7 @@ const MermaidEditor = () => {
               value={code}
               onChange={(e) => setCode(e.target.value)}
               className="h-full w-full resize-none border-0 rounded-none bg-background p-4 font-mono focus-visible:ring-0"
-              placeholder="Enter Mermaid code here..."
+              placeholder="Enter Mermaid code here or generate with AI..."
             />
           </div>
         </ResizablePanel>
