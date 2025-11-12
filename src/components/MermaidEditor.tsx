@@ -4,7 +4,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { Download, AlertCircle, RefreshCw, Copy, Sparkles, Trash2 } from 'lucide-react';
+import { Download, AlertCircle, RefreshCw, Copy, Sparkles, Trash2, ZoomIn, ZoomOut, Maximize2, Minimize2, Move, Palette } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -18,6 +18,9 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Slider } from "@/components/ui/slider";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const defaultRawText = `A user starts a process. They are asked a question. If they say yes, it's OK and the process ends. If they say no, they need to find out more and go back to the question.`;
 
@@ -28,6 +31,64 @@ const initialDiagram = `graph TD
     B -- No --> E(Find out);
     E --> B;
 `;
+
+// Theme presets
+const themePresets = {
+  googleCloud: {
+    name: 'Google Cloud',
+    primaryColor: '#E8F0FE',
+    primaryTextColor: '#202124',
+    primaryBorderColor: '#4285F4',
+    lineColor: '#5F6368',
+    textColor: '#202124',
+    arrowheadColor: '#5F6368',
+  },
+  dark: {
+    name: 'Dark',
+    primaryColor: '#1e293b',
+    primaryTextColor: '#f1f5f9',
+    primaryBorderColor: '#475569',
+    lineColor: '#94a3b8',
+    textColor: '#f1f5f9',
+    arrowheadColor: '#94a3b8',
+  },
+  forest: {
+    name: 'Forest',
+    primaryColor: '#d4edda',
+    primaryTextColor: '#155724',
+    primaryBorderColor: '#28a745',
+    lineColor: '#28a745',
+    textColor: '#155724',
+    arrowheadColor: '#28a745',
+  },
+  ocean: {
+    name: 'Ocean',
+    primaryColor: '#cfe2ff',
+    primaryTextColor: '#084298',
+    primaryBorderColor: '#0d6efd',
+    lineColor: '#0d6efd',
+    textColor: '#084298',
+    arrowheadColor: '#0d6efd',
+  },
+  sunset: {
+    name: 'Sunset',
+    primaryColor: '#fff3cd',
+    primaryTextColor: '#664d03',
+    primaryBorderColor: '#ffc107',
+    lineColor: '#fd7e14',
+    textColor: '#664d03',
+    arrowheadColor: '#fd7e14',
+  },
+  custom: {
+    name: 'Custom',
+    primaryColor: '#E8F0FE',
+    primaryTextColor: '#202124',
+    primaryBorderColor: '#4285F4',
+    lineColor: '#5F6368',
+    textColor: '#202124',
+    arrowheadColor: '#5F6368',
+  },
+};
 
 const svgStringToPngBlob = (svgString: string, scale = 2): Promise<Blob> => {
   return new Promise((resolve, reject) => {
@@ -80,11 +141,31 @@ const MermaidEditor = () => {
   const [isRendering, setIsRendering] = useState(false);
   const { toast } = useToast();
   const [svgString, setSvgString] = useState('');
-  
+
   const [rawText, setRawText] = useState<string>(defaultRawText);
   const [apiKey, setApiKey] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
+
+  // Theme and color customization
+  const [selectedTheme, setSelectedTheme] = useState<keyof typeof themePresets>('googleCloud');
+  const [customColors, setCustomColors] = useState(themePresets.googleCloud);
+  const [themeDialogOpen, setThemeDialogOpen] = useState(false);
+
+  // Export options
+  const [exportDialogOpen, setExportDialogOpen] = useState(false);
+  const [exportFormat, setExportFormat] = useState<'png' | 'svg' | 'pdf'>('png');
+  const [exportScale, setExportScale] = useState(2);
+  const [exportBackground, setExportBackground] = useState<'transparent' | 'white' | 'custom'>('transparent');
+  const [customBgColor, setCustomBgColor] = useState('#ffffff');
+
+  // Advanced features
+  const [zoom, setZoom] = useState(1);
+  const [pan, setPan] = useState({ x: 0, y: 0 });
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [isPanning, setIsPanning] = useState(false);
+  const [panStart, setPanStart] = useState({ x: 0, y: 0 });
+
   const [iconMappings, setIconMappings] = useState([
     { keyword: 'user', url: 'https://cdn.simpleicons.org/probot/black' },
     { keyword: 'database', url: 'https://cdn.simpleicons.org/serverless/black' },
@@ -125,6 +206,7 @@ const MermaidEditor = () => {
   };
 
   useEffect(() => {
+    const currentTheme = selectedTheme === 'custom' ? customColors : themePresets[selectedTheme];
     mermaid.initialize({
       startOnLoad: false,
       theme: 'base',
@@ -134,15 +216,14 @@ const MermaidEditor = () => {
       },
       themeVariables: {
         background: 'transparent',
-        primaryColor: '#E8F0FE',
-        primaryTextColor: '#202124',
-        primaryBorderColor: '#4285F4',
-        lineColor: '#5F6368',
-        textColor: '#202124',
-        arrowheadColor: '#5F6368',
+        ...currentTheme,
       },
     });
-  }, []);
+    // Re-render the diagram when theme changes
+    if (debouncedCode) {
+      renderDiagram();
+    }
+  }, [selectedTheme, customColors]);
 
   const renderDiagram = async () => {
     if (!previewRef.current) return;
@@ -301,6 +382,186 @@ Text: "${rawText}"`;
     }
   };
 
+  // Enhanced export with options
+  const handleEnhancedExport = async () => {
+    if (!svgString) {
+      toast({
+        variant: "destructive",
+        title: "No diagram to export",
+        description: "Please render a diagram first.",
+      });
+      return;
+    }
+
+    try {
+      if (exportFormat === 'svg') {
+        // Export as SVG
+        const blob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'diagram.svg';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else if (exportFormat === 'png') {
+        // Export as PNG with custom options
+        const blob = await svgStringToPngBlobWithOptions(svgString, exportScale, exportBackground, customBgColor);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'diagram.png';
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+      } else if (exportFormat === 'pdf') {
+        // Export as PDF (using jsPDF)
+        const { jsPDF } = await import('jspdf');
+        const blob = await svgStringToPngBlobWithOptions(svgString, exportScale, exportBackground, customBgColor);
+        const img = new Image();
+        const url = URL.createObjectURL(blob);
+
+        img.onload = () => {
+          const pdf = new jsPDF({
+            orientation: img.width > img.height ? 'landscape' : 'portrait',
+            unit: 'px',
+            format: [img.width, img.height]
+          });
+          pdf.addImage(img, 'PNG', 0, 0, img.width, img.height);
+          pdf.save('diagram.pdf');
+          URL.revokeObjectURL(url);
+        };
+        img.src = url;
+      }
+
+      toast({
+        title: "Export Successful",
+        description: `Diagram exported as ${exportFormat.toUpperCase()}.`,
+      });
+      setExportDialogOpen(false);
+    } catch (err) {
+      console.error('Failed to export: ', err);
+      const errorMessage = err instanceof Error ? err.message : 'An unknown error occurred.';
+      toast({
+        variant: "destructive",
+        title: "Export Failed",
+        description: `Could not export diagram. ${errorMessage}`,
+      });
+    }
+  };
+
+  const svgStringToPngBlobWithOptions = (
+    svgString: string,
+    scale: number,
+    background: 'transparent' | 'white' | 'custom',
+    bgColor: string
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      const svgBlob = new Blob([svgString], { type: 'image/svg+xml;charset=utf-8' });
+      const url = URL.createObjectURL(svgBlob);
+
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        canvas.width = img.naturalWidth * scale;
+        canvas.height = img.naturalHeight * scale;
+        const ctx = canvas.getContext('2d');
+
+        if (!ctx) {
+          URL.revokeObjectURL(url);
+          return reject(new Error('Failed to get canvas context.'));
+        }
+
+        // Set background based on option
+        if (background === 'white') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        } else if (background === 'custom') {
+          ctx.fillStyle = bgColor;
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+
+        ctx.scale(scale, scale);
+        ctx.drawImage(img, 0, 0);
+
+        canvas.toBlob((blob) => {
+          URL.revokeObjectURL(url);
+          if (blob) {
+            resolve(blob);
+          } else {
+            reject(new Error('Canvas to Blob conversion failed'));
+          }
+        }, 'image/png');
+      };
+
+      img.onerror = (error) => {
+        URL.revokeObjectURL(url);
+        console.error("Image loading error:", error);
+        reject(new Error('Failed to load SVG image for conversion.'));
+      };
+
+      img.src = url;
+    });
+  };
+
+  // Zoom functions
+  const handleZoomIn = () => {
+    setZoom((prev) => Math.min(prev + 0.25, 5));
+  };
+
+  const handleZoomOut = () => {
+    setZoom((prev) => Math.max(prev - 0.25, 0.25));
+  };
+
+  const handleResetZoom = () => {
+    setZoom(1);
+    setPan({ x: 0, y: 0 });
+  };
+
+  // Pan functions
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.button === 0) { // Left mouse button
+      setIsPanning(true);
+      setPanStart({ x: e.clientX - pan.x, y: e.clientY - pan.y });
+    }
+  };
+
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (isPanning) {
+      setPan({
+        x: e.clientX - panStart.x,
+        y: e.clientY - panStart.y,
+      });
+    }
+  };
+
+  const handleMouseUp = () => {
+    setIsPanning(false);
+  };
+
+  // Fullscreen toggle
+  const toggleFullscreen = () => {
+    setIsFullscreen(!isFullscreen);
+  };
+
+  // Theme functions
+  const handleThemeChange = (theme: keyof typeof themePresets) => {
+    setSelectedTheme(theme);
+    if (theme !== 'custom') {
+      setCustomColors(themePresets[theme]);
+    }
+  };
+
+  const handleCustomColorChange = (colorKey: string, value: string) => {
+    setCustomColors((prev) => ({
+      ...prev,
+      [colorKey]: value,
+    }));
+  };
+
   return (
     <div className="flex flex-col h-[calc(100vh-80px)]">
       <div className="p-4 border-b border-border flex items-center justify-between gap-2">
@@ -379,6 +640,96 @@ Text: "${rawText}"`;
           </Dialog>
         </div>
         <div className="flex items-center justify-end gap-2">
+            {/* Theme Selector */}
+            <Dialog open={themeDialogOpen} onOpenChange={setThemeDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Palette className="mr-2 h-4 w-4" />
+                  Theme
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[500px]">
+                <DialogHeader>
+                  <DialogTitle>Customize Theme</DialogTitle>
+                  <DialogDescription>
+                    Choose a preset theme or customize your own colors.
+                  </DialogDescription>
+                </DialogHeader>
+                <Tabs defaultValue="presets" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2">
+                    <TabsTrigger value="presets">Presets</TabsTrigger>
+                    <TabsTrigger value="custom">Custom</TabsTrigger>
+                  </TabsList>
+                  <TabsContent value="presets" className="space-y-4">
+                    <Select value={selectedTheme} onValueChange={handleThemeChange}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Select a theme" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(themePresets).map(([key, theme]) => (
+                          <SelectItem key={key} value={key}>
+                            {theme.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <div className="grid grid-cols-3 gap-2">
+                      {Object.entries(themePresets).filter(([key]) => key !== 'custom').map(([key, theme]) => (
+                        <button
+                          key={key}
+                          onClick={() => handleThemeChange(key as keyof typeof themePresets)}
+                          className={`p-3 rounded-lg border-2 transition-all ${
+                            selectedTheme === key ? 'border-primary' : 'border-border hover:border-primary/50'
+                          }`}
+                        >
+                          <div className="space-y-1">
+                            <div className="font-medium text-sm">{theme.name}</div>
+                            <div className="flex gap-1">
+                              <div className="w-4 h-4 rounded" style={{ backgroundColor: theme.primaryColor }} />
+                              <div className="w-4 h-4 rounded" style={{ backgroundColor: theme.primaryBorderColor }} />
+                              <div className="w-4 h-4 rounded" style={{ backgroundColor: theme.lineColor }} />
+                            </div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="custom" className="space-y-4">
+                    <div className="grid gap-4">
+                      {Object.entries(customColors).filter(([key]) => key !== 'name').map(([key, value]) => (
+                        <div key={key} className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm capitalize">
+                            {key.replace(/([A-Z])/g, ' $1').trim()}
+                          </Label>
+                          <Input
+                            type="color"
+                            value={value as string}
+                            onChange={(e) => {
+                              setSelectedTheme('custom');
+                              handleCustomColorChange(key, e.target.value);
+                            }}
+                            className="col-span-1 h-10"
+                          />
+                          <Input
+                            type="text"
+                            value={value as string}
+                            onChange={(e) => {
+                              setSelectedTheme('custom');
+                              handleCustomColorChange(key, e.target.value);
+                            }}
+                            className="col-span-1 font-mono text-xs"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
+                <DialogFooter>
+                  <Button onClick={() => setThemeDialogOpen(false)}>Done</Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
+
             <Button onClick={renderDiagram} disabled={isRendering} variant="outline">
                 <RefreshCw className={`mr-2 h-4 w-4 ${isRendering ? 'animate-spin' : ''}`} />
                 Render
@@ -387,10 +738,100 @@ Text: "${rawText}"`;
               <Copy className="mr-2 h-4 w-4" />
               Copy Image
             </Button>
-            <Button onClick={handleExport} variant="outline">
-              <Download className="mr-2 h-4 w-4" />
-              Export as PNG
-            </Button>
+
+            {/* Enhanced Export Dialog */}
+            <Dialog open={exportDialogOpen} onOpenChange={setExportDialogOpen}>
+              <DialogTrigger asChild>
+                <Button variant="outline">
+                  <Download className="mr-2 h-4 w-4" />
+                  Export
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Export Diagram</DialogTitle>
+                  <DialogDescription>
+                    Choose export format and quality options.
+                  </DialogDescription>
+                </DialogHeader>
+                <div className="grid gap-4 py-4">
+                  <div className="grid gap-2">
+                    <Label>Format</Label>
+                    <Select value={exportFormat} onValueChange={(value: 'png' | 'svg' | 'pdf') => setExportFormat(value)}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="png">PNG (Raster)</SelectItem>
+                        <SelectItem value="svg">SVG (Vector)</SelectItem>
+                        <SelectItem value="pdf">PDF (Document)</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {exportFormat === 'png' && (
+                    <>
+                      <div className="grid gap-2">
+                        <Label>Quality (Scale: {exportScale}x)</Label>
+                        <Slider
+                          value={[exportScale]}
+                          onValueChange={([value]) => setExportScale(value)}
+                          min={1}
+                          max={4}
+                          step={0.5}
+                          className="w-full"
+                        />
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>1x (Low)</span>
+                          <span>2x (Medium)</span>
+                          <span>4x (High)</span>
+                        </div>
+                      </div>
+
+                      <div className="grid gap-2">
+                        <Label>Background</Label>
+                        <Select value={exportBackground} onValueChange={(value: 'transparent' | 'white' | 'custom') => setExportBackground(value)}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="transparent">Transparent</SelectItem>
+                            <SelectItem value="white">White</SelectItem>
+                            <SelectItem value="custom">Custom Color</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      {exportBackground === 'custom' && (
+                        <div className="grid gap-2">
+                          <Label>Background Color</Label>
+                          <div className="flex gap-2">
+                            <Input
+                              type="color"
+                              value={customBgColor}
+                              onChange={(e) => setCustomBgColor(e.target.value)}
+                              className="w-20"
+                            />
+                            <Input
+                              type="text"
+                              value={customBgColor}
+                              onChange={(e) => setCustomBgColor(e.target.value)}
+                              className="flex-1 font-mono"
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </>
+                  )}
+                </div>
+                <DialogFooter>
+                  <Button onClick={handleEnhancedExport}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export
+                  </Button>
+                </DialogFooter>
+              </DialogContent>
+            </Dialog>
         </div>
       </div>
       <ResizablePanelGroup direction="horizontal" className="flex-grow rounded-lg border-none">
@@ -406,17 +847,55 @@ Text: "${rawText}"`;
         </ResizablePanel>
         <ResizableHandle withHandle />
         <ResizablePanel defaultSize={60}>
-          <div className="flex h-full items-center justify-center p-4 bg-white text-black overflow-auto">
-            {error && (
-              <Alert variant="destructive" className="m-4">
-                <AlertCircle className="h-4 w-4" />
-                <AlertTitle>Rendering Error</AlertTitle>
-                <AlertDescription>
-                    <pre className="text-xs whitespace-pre-wrap font-mono">{error}</pre>
-                </AlertDescription>
-              </Alert>
-            )}
-            <div ref={previewRef} className="w-full h-full flex items-center justify-center" />
+          <div className={`relative ${isFullscreen ? 'fixed inset-0 z-50 bg-white' : 'h-full'}`}>
+            {/* Zoom and Fullscreen Controls */}
+            <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
+              <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 rounded-lg border shadow-lg p-2 flex flex-col gap-1">
+                <Button size="icon" variant="ghost" onClick={handleZoomIn} title="Zoom In">
+                  <ZoomIn className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={handleZoomOut} title="Zoom Out">
+                  <ZoomOut className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" onClick={handleResetZoom} title="Reset View">
+                  <Move className="h-4 w-4" />
+                </Button>
+                <div className="border-t my-1" />
+                <Button size="icon" variant="ghost" onClick={toggleFullscreen} title={isFullscreen ? "Exit Fullscreen" : "Fullscreen"}>
+                  {isFullscreen ? <Minimize2 className="h-4 w-4" /> : <Maximize2 className="h-4 w-4" />}
+                </Button>
+              </div>
+              <div className="bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/80 rounded-lg border shadow-lg p-2 text-xs text-center font-mono">
+                {Math.round(zoom * 100)}%
+              </div>
+            </div>
+
+            <div
+              className="flex h-full items-center justify-center p-4 bg-white text-black overflow-hidden"
+              onMouseDown={handleMouseDown}
+              onMouseMove={handleMouseMove}
+              onMouseUp={handleMouseUp}
+              onMouseLeave={handleMouseUp}
+              style={{ cursor: isPanning ? 'grabbing' : 'grab' }}
+            >
+              {error && (
+                <Alert variant="destructive" className="m-4 absolute">
+                  <AlertCircle className="h-4 w-4" />
+                  <AlertTitle>Rendering Error</AlertTitle>
+                  <AlertDescription>
+                      <pre className="text-xs whitespace-pre-wrap font-mono">{error}</pre>
+                  </AlertDescription>
+                </Alert>
+              )}
+              <div
+                ref={previewRef}
+                className="w-full h-full flex items-center justify-center transition-transform"
+                style={{
+                  transform: `scale(${zoom}) translate(${pan.x / zoom}px, ${pan.y / zoom}px)`,
+                  transformOrigin: 'center center',
+                }}
+              />
+            </div>
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
