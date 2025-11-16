@@ -943,14 +943,39 @@ Text: "${rawText}"`;
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
+                              {/* Sans-serif Fonts */}
                               <SelectItem value="Arial, sans-serif">Arial</SelectItem>
-                              <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
-                              <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
+                              <SelectItem value="Helvetica, sans-serif">Helvetica</SelectItem>
                               <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
-                              <SelectItem value="Georgia, serif">Georgia</SelectItem>
-                              <SelectItem value="'Comic Sans MS', cursive">Comic Sans MS</SelectItem>
+                              <SelectItem value="Tahoma, sans-serif">Tahoma</SelectItem>
                               <SelectItem value="'Trebuchet MS', sans-serif">Trebuchet MS</SelectItem>
+                              <SelectItem value="'Segoe UI', sans-serif">Segoe UI</SelectItem>
+                              <SelectItem value="'Roboto', sans-serif">Roboto</SelectItem>
+                              <SelectItem value="'Open Sans', sans-serif">Open Sans</SelectItem>
+                              <SelectItem value="'Lato', sans-serif">Lato</SelectItem>
+                              <SelectItem value="'Montserrat', sans-serif">Montserrat</SelectItem>
+                              <SelectItem value="'Poppins', sans-serif">Poppins</SelectItem>
+                              <SelectItem value="'Inter', sans-serif">Inter</SelectItem>
+
+                              {/* Serif Fonts */}
+                              <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
+                              <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                              <SelectItem value="Garamond, serif">Garamond</SelectItem>
+                              <SelectItem value="'Palatino Linotype', serif">Palatino Linotype</SelectItem>
+                              <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
+                              <SelectItem value="'Playfair Display', serif">Playfair Display</SelectItem>
+
+                              {/* Monospace Fonts */}
+                              <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
                               <SelectItem value="'Lucida Console', monospace">Lucida Console</SelectItem>
+                              <SelectItem value="Monaco, monospace">Monaco</SelectItem>
+                              <SelectItem value="'Consolas', monospace">Consolas</SelectItem>
+                              <SelectItem value="'Source Code Pro', monospace">Source Code Pro</SelectItem>
+                              <SelectItem value="'JetBrains Mono', monospace">JetBrains Mono</SelectItem>
+
+                              {/* Display/Cursive Fonts */}
+                              <SelectItem value="'Comic Sans MS', cursive">Comic Sans MS</SelectItem>
+                              <SelectItem value="Impact, sans-serif">Impact</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
