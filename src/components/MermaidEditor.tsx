@@ -294,6 +294,22 @@ const MermaidEditor = () => {
   const [exportBackground, setExportBackground] = useState<'transparent' | 'white' | 'custom'>('transparent');
   const [customBgColor, setCustomBgColor] = useState('#ffffff');
 
+  // Advanced styling options
+  const [fontFamily, setFontFamily] = useState('Arial, sans-serif');
+  const [fontSize, setFontSize] = useState(16);
+  const [fontWeight, setFontWeight] = useState<'normal' | 'bold' | 'bolder'>('normal');
+  const [nodeBorderWidth, setNodeBorderWidth] = useState(2);
+  const [nodeBorderRadius, setNodeBorderRadius] = useState(5);
+  const [nodePadding, setNodePadding] = useState(10);
+  const [nodeShadow, setNodeShadow] = useState(false);
+  const [shadowBlur, setShadowBlur] = useState(10);
+  const [lineWidth, setLineWidth] = useState(2);
+  const [lineStyle, setLineStyle] = useState<'solid' | 'dashed' | 'dotted'>('solid');
+  const [curveType, setCurveType] = useState<'basis' | 'linear' | 'step' | 'cardinal'>('basis');
+  const [nodeSpacing, setNodeSpacing] = useState(50);
+  const [levelSpacing, setLevelSpacing] = useState(50);
+  const [diagramOpacity, setDiagramOpacity] = useState(1);
+
   // Advanced features
   const [zoom, setZoom] = useState(1);
   const [pan, setPan] = useState({ x: 0, y: 0 });
@@ -347,18 +363,33 @@ const MermaidEditor = () => {
       theme: 'base',
       securityLevel: 'loose',
       flowchart: {
-        curve: 'basis',
+        curve: curveType,
+        padding: nodePadding,
+        nodeSpacing: nodeSpacing,
+        rankSpacing: levelSpacing,
+        diagramPadding: 20,
       },
       themeVariables: {
         background: 'transparent',
+        fontFamily: fontFamily,
+        fontSize: `${fontSize}px`,
+        fontWeight: fontWeight,
         ...currentTheme,
+        // Line styling
+        lineColor: currentTheme.lineColor,
+        edgeLabelBackground: 'transparent',
+        // Node border
+        nodeBorder: currentTheme.primaryBorderColor,
+        mainBkg: currentTheme.primaryColor,
+        textColor: currentTheme.textColor,
+        primaryTextColor: currentTheme.primaryTextColor,
       },
     });
-    // Re-render the diagram when theme changes
+    // Re-render the diagram when theme or styling changes
     if (debouncedCode) {
       renderDiagram();
     }
-  }, [selectedTheme, customColors]);
+  }, [selectedTheme, customColors, fontFamily, fontSize, fontWeight, nodeBorderWidth, nodeBorderRadius, nodePadding, lineWidth, lineStyle, curveType, nodeSpacing, levelSpacing, diagramOpacity, nodeShadow, shadowBlur]);
 
   const renderDiagram = async () => {
     if (!previewRef.current) return;
@@ -370,6 +401,47 @@ const MermaidEditor = () => {
       const id = `mermaid-diagram-${Date.now()}`;
       const { svg } = await mermaid.render(id, debouncedCode);
       previewRef.current.innerHTML = svg;
+
+      // Apply advanced styling to SVG elements
+      const svgElement = previewRef.current.querySelector('svg');
+      if (svgElement) {
+        // Apply opacity
+        svgElement.style.opacity = diagramOpacity.toString();
+
+        // Style all nodes (rectangles, circles, etc.)
+        const nodes = svgElement.querySelectorAll('.node rect, .node circle, .node polygon, .node ellipse');
+        nodes.forEach((node) => {
+          const element = node as SVGElement;
+          element.style.strokeWidth = `${nodeBorderWidth}px`;
+          element.style.rx = `${nodeBorderRadius}px`;
+          element.style.ry = `${nodeBorderRadius}px`;
+          if (nodeShadow) {
+            element.style.filter = `drop-shadow(0px 4px ${shadowBlur}px rgba(0, 0, 0, 0.3))`;
+          }
+        });
+
+        // Style all edges/lines
+        const edges = svgElement.querySelectorAll('.edgePath path');
+        edges.forEach((edge) => {
+          const element = edge as SVGElement;
+          element.style.strokeWidth = `${lineWidth}px`;
+          if (lineStyle === 'dashed') {
+            element.style.strokeDasharray = '5,5';
+          } else if (lineStyle === 'dotted') {
+            element.style.strokeDasharray = '2,2';
+          } else {
+            element.style.strokeDasharray = 'none';
+          }
+        });
+
+        // Style arrow markers
+        const markers = svgElement.querySelectorAll('marker path');
+        markers.forEach((marker) => {
+          const element = marker as SVGElement;
+          element.style.strokeWidth = `${lineWidth}px`;
+        });
+      }
+
       setSvgString(svg);
     } catch (e) {
       if (e instanceof Error) {
@@ -785,15 +857,16 @@ Text: "${rawText}"`;
               </DialogTrigger>
               <DialogContent className="sm:max-w-[500px]">
                 <DialogHeader>
-                  <DialogTitle>Customize Theme</DialogTitle>
+                  <DialogTitle>Customize Theme & Style</DialogTitle>
                   <DialogDescription>
-                    Choose a preset theme or customize your own colors.
+                    Choose a preset theme, customize colors, or adjust advanced styling options.
                   </DialogDescription>
                 </DialogHeader>
                 <Tabs defaultValue="presets" className="w-full">
-                  <TabsList className="grid w-full grid-cols-2">
+                  <TabsList className="grid w-full grid-cols-3">
                     <TabsTrigger value="presets">Presets</TabsTrigger>
                     <TabsTrigger value="custom">Custom</TabsTrigger>
+                    <TabsTrigger value="advanced">Advanced</TabsTrigger>
                   </TabsList>
                   <TabsContent value="presets" className="space-y-4">
                     <Select value={selectedTheme} onValueChange={handleThemeChange}>
@@ -856,6 +929,210 @@ Text: "${rawText}"`;
                           />
                         </div>
                       ))}
+                    </div>
+                  </TabsContent>
+                  <TabsContent value="advanced" className="space-y-4 max-h-[500px] overflow-y-auto pr-2">
+                    {/* Font Customization */}
+                    <div className="space-y-3 border-b pb-4">
+                      <h4 className="font-semibold text-sm">Font</h4>
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Family</Label>
+                          <Select value={fontFamily} onValueChange={setFontFamily}>
+                            <SelectTrigger className="col-span-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Arial, sans-serif">Arial</SelectItem>
+                              <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
+                              <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
+                              <SelectItem value="Verdana, sans-serif">Verdana</SelectItem>
+                              <SelectItem value="Georgia, serif">Georgia</SelectItem>
+                              <SelectItem value="'Comic Sans MS', cursive">Comic Sans MS</SelectItem>
+                              <SelectItem value="'Trebuchet MS', sans-serif">Trebuchet MS</SelectItem>
+                              <SelectItem value="'Lucida Console', monospace">Lucida Console</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Size: {fontSize}px</Label>
+                          <Slider
+                            value={[fontSize]}
+                            onValueChange={([value]) => setFontSize(value)}
+                            min={10}
+                            max={32}
+                            step={1}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Weight</Label>
+                          <Select value={fontWeight} onValueChange={(value: 'normal' | 'bold' | 'bolder') => setFontWeight(value)}>
+                            <SelectTrigger className="col-span-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="normal">Normal</SelectItem>
+                              <SelectItem value="bold">Bold</SelectItem>
+                              <SelectItem value="bolder">Bolder</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Node Styling */}
+                    <div className="space-y-3 border-b pb-4">
+                      <h4 className="font-semibold text-sm">Nodes</h4>
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Border Width: {nodeBorderWidth}px</Label>
+                          <Slider
+                            value={[nodeBorderWidth]}
+                            onValueChange={([value]) => setNodeBorderWidth(value)}
+                            min={0}
+                            max={10}
+                            step={0.5}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Border Radius: {nodeBorderRadius}px</Label>
+                          <Slider
+                            value={[nodeBorderRadius]}
+                            onValueChange={([value]) => setNodeBorderRadius(value)}
+                            min={0}
+                            max={30}
+                            step={1}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Padding: {nodePadding}px</Label>
+                          <Slider
+                            value={[nodePadding]}
+                            onValueChange={([value]) => setNodePadding(value)}
+                            min={5}
+                            max={30}
+                            step={1}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="flex items-center justify-between">
+                          <Label className="text-sm">Shadow</Label>
+                          <input
+                            type="checkbox"
+                            checked={nodeShadow}
+                            onChange={(e) => setNodeShadow(e.target.checked)}
+                            className="h-4 w-4"
+                          />
+                        </div>
+                        {nodeShadow && (
+                          <div className="grid grid-cols-3 items-center gap-4">
+                            <Label className="text-sm">Shadow Blur: {shadowBlur}px</Label>
+                            <Slider
+                              value={[shadowBlur]}
+                              onValueChange={([value]) => setShadowBlur(value)}
+                              min={0}
+                              max={30}
+                              step={1}
+                              className="col-span-2"
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Line Styling */}
+                    <div className="space-y-3 border-b pb-4">
+                      <h4 className="font-semibold text-sm">Lines & Edges</h4>
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Line Width: {lineWidth}px</Label>
+                          <Slider
+                            value={[lineWidth]}
+                            onValueChange={([value]) => setLineWidth(value)}
+                            min={0.5}
+                            max={10}
+                            step={0.5}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Line Style</Label>
+                          <Select value={lineStyle} onValueChange={(value: 'solid' | 'dashed' | 'dotted') => setLineStyle(value)}>
+                            <SelectTrigger className="col-span-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="solid">Solid</SelectItem>
+                              <SelectItem value="dashed">Dashed</SelectItem>
+                              <SelectItem value="dotted">Dotted</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Curve Type</Label>
+                          <Select value={curveType} onValueChange={(value: 'basis' | 'linear' | 'step' | 'cardinal') => setCurveType(value)}>
+                            <SelectTrigger className="col-span-2">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="basis">Curved (Basis)</SelectItem>
+                              <SelectItem value="linear">Straight (Linear)</SelectItem>
+                              <SelectItem value="step">Stepped</SelectItem>
+                              <SelectItem value="cardinal">Curved (Cardinal)</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Spacing */}
+                    <div className="space-y-3 border-b pb-4">
+                      <h4 className="font-semibold text-sm">Spacing & Layout</h4>
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Node Spacing: {nodeSpacing}px</Label>
+                          <Slider
+                            value={[nodeSpacing]}
+                            onValueChange={([value]) => setNodeSpacing(value)}
+                            min={20}
+                            max={150}
+                            step={5}
+                            className="col-span-2"
+                          />
+                        </div>
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Level Spacing: {levelSpacing}px</Label>
+                          <Slider
+                            value={[levelSpacing]}
+                            onValueChange={([value]) => setLevelSpacing(value)}
+                            min={20}
+                            max={150}
+                            step={5}
+                            className="col-span-2"
+                          />
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Effects */}
+                    <div className="space-y-3">
+                      <h4 className="font-semibold text-sm">Effects</h4>
+                      <div className="grid gap-3">
+                        <div className="grid grid-cols-3 items-center gap-4">
+                          <Label className="text-sm">Opacity: {Math.round(diagramOpacity * 100)}%</Label>
+                          <Slider
+                            value={[diagramOpacity]}
+                            onValueChange={([value]) => setDiagramOpacity(value)}
+                            min={0.1}
+                            max={1}
+                            step={0.1}
+                            className="col-span-2"
+                          />
+                        </div>
+                      </div>
                     </div>
                   </TabsContent>
                 </Tabs>
