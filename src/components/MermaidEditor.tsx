@@ -4,7 +4,7 @@ import { useDebounce } from '@/hooks/useDebounce';
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { Download, AlertCircle, RefreshCw, Copy, Sparkles, Trash2, ZoomIn, ZoomOut, Maximize2, Minimize2, Move, Palette } from 'lucide-react';
+import { Download, AlertCircle, RefreshCw, Copy, Sparkles, Trash2, ZoomIn, ZoomOut, Maximize2, Minimize2, Move, Palette, Linkedin, Twitter, Github } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from '@/hooks/use-toast';
 import {
@@ -772,7 +772,7 @@ Text: "${rawText}"`;
   return (
     <div className="flex flex-col h-[calc(100vh-80px)]">
       <div className="p-4 border-b border-border flex items-center justify-between gap-2">
-        <div>
+        <div className="flex items-center gap-2">
           <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -1244,6 +1244,52 @@ Text: "${rawText}"`;
                 </DialogFooter>
               </DialogContent>
             </Dialog>
+
+            {/* Social Media Links */}
+            <div className="flex items-center gap-1 ml-4 border-l pl-4">
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                title="LinkedIn"
+              >
+                <a
+                  href="https://www.linkedin.com/in/yashkavaiya/"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Linkedin className="h-4 w-4" />
+                </a>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                title="Twitter/X"
+              >
+                <a
+                  href="https://x.com/Yash_Kavaiya_"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Twitter className="h-4 w-4" />
+                </a>
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                asChild
+                title="GitHub"
+              >
+                <a
+                  href="https://github.com/Yash-Kavaiya"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                >
+                  <Github className="h-4 w-4" />
+                </a>
+              </Button>
+            </div>
         </div>
       </div>
       <ResizablePanelGroup direction="horizontal" className="flex-grow rounded-lg border-none">
