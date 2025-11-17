@@ -956,6 +956,14 @@ Text: "${rawText}"`;
                               <SelectItem value="'Montserrat', sans-serif">Montserrat</SelectItem>
                               <SelectItem value="'Poppins', sans-serif">Poppins</SelectItem>
                               <SelectItem value="'Inter', sans-serif">Inter</SelectItem>
+                              <SelectItem value="'Nunito', sans-serif">Nunito</SelectItem>
+                              <SelectItem value="'Raleway', sans-serif">Raleway</SelectItem>
+                              <SelectItem value="'Ubuntu', sans-serif">Ubuntu</SelectItem>
+                              <SelectItem value="'Work Sans', sans-serif">Work Sans</SelectItem>
+                              <SelectItem value="'Noto Sans', sans-serif">Noto Sans</SelectItem>
+                              <SelectItem value="'Quicksand', sans-serif">Quicksand</SelectItem>
+                              <SelectItem value="'Mulish', sans-serif">Mulish</SelectItem>
+                              <SelectItem value="'Karla', sans-serif">Karla</SelectItem>
 
                               {/* Serif Fonts */}
                               <SelectItem value="'Times New Roman', serif">Times New Roman</SelectItem>
@@ -964,6 +972,12 @@ Text: "${rawText}"`;
                               <SelectItem value="'Palatino Linotype', serif">Palatino Linotype</SelectItem>
                               <SelectItem value="'Merriweather', serif">Merriweather</SelectItem>
                               <SelectItem value="'Playfair Display', serif">Playfair Display</SelectItem>
+                              <SelectItem value="'Lora', serif">Lora</SelectItem>
+                              <SelectItem value="'Crimson Text', serif">Crimson Text</SelectItem>
+                              <SelectItem value="'EB Garamond', serif">EB Garamond</SelectItem>
+                              <SelectItem value="'Libre Baskerville', serif">Libre Baskerville</SelectItem>
+                              <SelectItem value="'PT Serif', serif">PT Serif</SelectItem>
+                              <SelectItem value="'Spectral', serif">Spectral</SelectItem>
 
                               {/* Monospace Fonts */}
                               <SelectItem value="'Courier New', monospace">Courier New</SelectItem>
@@ -972,10 +986,20 @@ Text: "${rawText}"`;
                               <SelectItem value="'Consolas', monospace">Consolas</SelectItem>
                               <SelectItem value="'Source Code Pro', monospace">Source Code Pro</SelectItem>
                               <SelectItem value="'JetBrains Mono', monospace">JetBrains Mono</SelectItem>
+                              <SelectItem value="'Fira Code', monospace">Fira Code</SelectItem>
+                              <SelectItem value="'Ubuntu Mono', monospace">Ubuntu Mono</SelectItem>
+                              <SelectItem value="'Roboto Mono', monospace">Roboto Mono</SelectItem>
+                              <SelectItem value="'Inconsolata', monospace">Inconsolata</SelectItem>
+                              <SelectItem value="'IBM Plex Mono', monospace">IBM Plex Mono</SelectItem>
+                              <SelectItem value="'Space Mono', monospace">Space Mono</SelectItem>
 
                               {/* Display/Cursive Fonts */}
                               <SelectItem value="'Comic Sans MS', cursive">Comic Sans MS</SelectItem>
                               <SelectItem value="Impact, sans-serif">Impact</SelectItem>
+                              <SelectItem value="'Oswald', sans-serif">Oswald</SelectItem>
+                              <SelectItem value="'Bebas Neue', sans-serif">Bebas Neue</SelectItem>
+                              <SelectItem value="'Righteous', cursive">Righteous</SelectItem>
+                              <SelectItem value="'Pacifico', cursive">Pacifico</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
